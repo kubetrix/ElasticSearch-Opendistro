@@ -1,0 +1,11 @@
+PUT _template/wmsstagingk8s
+{
+  "index_patterns": [
+    "nonprod-*"
+  ],
+  "order": 0,
+  "settings": {
+    "opendistro.index_state_management.policy_id": "generic-all",
+    "number_of_shards": 2
+  }
+}

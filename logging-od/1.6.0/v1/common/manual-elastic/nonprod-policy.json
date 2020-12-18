@@ -1,0 +1,94 @@
+{
+    "policy": {
+        "description": "staging",
+        "last_updated_time": 1590775669479,
+        "schema_version": 1,
+        "error_notification": null,
+        "default_state": "hot",
+        "states": [
+            {
+                "name": "hot",
+                "actions": [
+                    {
+                        "replica_count": {
+                            "number_of_replicas": 1
+                        }
+                    }
+                ],
+                "transitions": [
+                    {
+                        "state_name": "read_only",
+                        "conditions": {
+                            "min_index_age": "1d"
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "read_only",
+                "actions": [
+                    {
+                        "read_only": {}
+                    }
+                ],
+                "transitions": [
+                    {
+                        "state_name": "force_merge",
+                        "conditions": {
+                            "min_index_age": "2d"
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "force_merge",
+                "actions": [
+                    {
+                        "timeout": "1h",
+                        "retry": {
+                            "count": 3,
+                            "backoff": "exponential",
+                            "delay": "10m"
+                        },
+                        "force_merge": {
+                            "max_num_segments": 1
+                        }
+                    }
+                ],
+                "transitions": [
+                    {
+                        "state_name": "close",
+                        "conditions": {
+                            "min_index_age": "10d"
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "close",
+                "actions": [
+                    {
+                        "close": {}
+                    }
+                ],
+                "transitions": [
+                    {
+                        "state_name": "delete",
+                        "conditions": {
+                            "min_index_age": "12d"
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "delete",
+                "actions": [
+                    {
+                        "delete": {}
+                    }
+                ],
+                "transitions": []
+            }
+        ]
+    }
+}
