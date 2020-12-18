@@ -1,0 +1,11 @@
+{{ if eq .Values.allow.kibanaEnable true }}
+apiVersion: v1
+data:
+  tls.crt: {{.Values.env.oauth.ingressCerts.tlsCrt}}
+  tls.key: {{.Values.env.oauth.ingressCerts.tlsKey}}
+kind: Secret
+metadata:
+  name: {{.Values.env.oauth.ingressSecretName}}
+  namespace: {{.Values.namespace}}
+type: kubernetes.io/tls
+{{ end }}

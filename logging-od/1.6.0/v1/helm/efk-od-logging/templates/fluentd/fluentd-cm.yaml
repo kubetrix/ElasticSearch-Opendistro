@@ -1,0 +1,46 @@
+{{ if eq .Values.allow.fluentdEnable true }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{.Values.env.configFiles.fluendConf}}
+  namespace: {{.Values.namespace}}
+data:
+  fluent.conf: |-
+    ---
+    #@include systemd.conf
+    @include kubernetes.conf
+    
+    
+    <match **>
+       @type elasticsearch_dynamic
+       @id out_es
+       @log_level warn
+       #buffer_type memory
+       buffer_type file
+       buffer_path /var/log/fluent/nonprod.*.buffer
+       include_tag_key true
+       host "#{ENV['FLUENT_ELASTICSEARCH_HOST']}"
+       port "#{ENV['FLUENT_ELASTICSEARCH_PORT']}"
+       path "#{ENV['FLUENT_ELASTICSEARCH_PATH']}"
+       scheme "#{ENV['FLUENT_ELASTICSEARCH_SCHEME'] || 'http'}"
+       ssl_verify "#{ENV['FLUENT_ELASTICSEARCH_SSL_VERIFY'] || 'true'}"
+       user "#{ENV['FLUENT_ELASTICSEARCH_USER']}"
+       password "#{ENV['FLUENT_ELASTICSEARCH_PASSWORD']}"
+       ssl_version "#{ENV['FLUENT_ELASTICSEARCH_SSL_VERSION'] || 'TLSv1_2'}"
+       reload_connections "#{ENV['FLUENT_ELASTICSEARCH_RELOAD_CONNECTIONS'] || 'true'}"
+       flush_mode immediate					  
+       reconnect_on_error true
+       reload_on_failure true
+       logstash_format true
+       type_name fluentd
+       request_timeout 120s
+       logstash_prefix {{ .Values.env.fluentd.config.logstashIndexPrefix }}-${record['kubernetes']['namespace_name']}
+       buffer_chunk_limit "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_CHUNK_LIMIT_SIZE'] || '64M'}"
+       buffer_queue_limit "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_QUEUE_LIMIT_LENGTH'] || '128'}"
+       flush_interval "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_FLUSH_INTERVAL'] || '5s'}"
+       max_retry_wait "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_RETRY_MAX_INTERVAL'] || '30'}"
+       num_threads "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_FLUSH_THREAD_COUNT'] || '15'}"
+       overflow_action block
+    </match>
+
+{{ end }}

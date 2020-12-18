@@ -1,0 +1,27 @@
+namespace: logging
+clusterName: elasticsearch-od
+
+allow:
+  elasticsearchEnable: false
+  kibanaEnable: false
+  fluentdEnable: false
+  hqEnable: false
+  curatorEnable: false
+  
+client:
+  imageName: amazon/opendistro-for-elasticsearch:1.6.0
+
+master:
+  imageName: amazon/opendistro-for-elasticsearch:1.6.0
+
+data:
+  imageName: amazon/opendistro-for-elasticsearch:1.6.0
+
+kibana:
+  imageName: amazon/opendistro-for-elasticsearch-kibana:1.6.0 # Push unsecure image for using Oauth2-Proxy(https://github.com/oauth2-proxy/oauth2-proxy) based authentication
+
+curator:
+  imageName: untergeek/curator:5.7.6
+
+fluentd:
+  imageName: fluent/fluentd-kubernetes-daemonset:v1-debian-elasticsearch

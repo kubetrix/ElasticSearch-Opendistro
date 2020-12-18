@@ -1,0 +1,18 @@
+{{ if eq .Values.allow.kibanaEnable true }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: logging-elastic-od-1.6.0
+    role: kibana
+  name: {{.Values.env.kibana.serviceName}}
+  namespace: {{.Values.namespace}}
+spec:
+  ports:
+  - name: kibana-svc
+    port: 443
+    targetPort: 5601
+  selector:
+    role: kibana
+  type: ClusterIP
+{{ end }}

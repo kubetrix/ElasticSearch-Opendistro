@@ -1,0 +1,21 @@
+{{ if eq .Values.allow.elasticsearchEnable true }}
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: logging-elastic-od-1.6.0
+    role: client
+  name: {{.Values.env.client.fluentd.serviceName}}
+  namespace: {{.Values.namespace}}
+spec:
+  ports:
+    - name: http
+      port: 9200
+    - name: transport
+      port: 9300
+    - name: metrics
+      port: 9600
+  selector:
+    role: client
+  type: ClusterIP
+{{ end }}

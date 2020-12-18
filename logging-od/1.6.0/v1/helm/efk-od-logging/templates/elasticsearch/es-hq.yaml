@@ -1,0 +1,55 @@
+{{ if eq .Values.allow.hqEnable true }}
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: {{.Values.env.hq.name}}
+  namespace: {{.Values.namespace}}
+  labels:
+    app: logging-elastic-od-1.6.0
+    role: hq
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: logging-elastic-od-1.6.0
+        role: hq
+    spec:
+      containers:
+      - name: es-hq
+        image: {{.Values.env.hq.imageName}}
+        env:
+        - name: HQ_DEFAULT_URL
+          value: {{.Values.env.hq.elasticClientUrl}}
+        - name: HQ_ENABLE_SSL
+          value: {{.Values.env.hq.enableSSL| quote}}
+        - name: HQ_VERIFY_CERTS
+          value: "false"
+        #- name: HQ_DEBUG
+        #  value: "true"
+        resources:
+          limits:
+            cpu: 0.5
+        ports:
+        - containerPort: 5000
+          name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{.Values.env.hq.name}}
+  namespace: {{.Values.namespace}}
+  labels:
+    app: logging-elastic-od-1.6.0
+    role: hq
+spec:
+  selector:
+    app: logging-elastic-od-1.6.0
+    role: hq
+  ports:
+  - name: http
+    port: 80
+    targetPort: 5000
+    protocol: TCP
+  type: ClusterIP
+{{ end }}

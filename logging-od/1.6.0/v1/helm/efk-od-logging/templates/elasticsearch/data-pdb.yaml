@@ -1,0 +1,12 @@
+{{ if eq .Values.allow.elasticsearchEnable true }}
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: {{.Values.env.data.pdb.name}}
+spec:
+  maxUnavailable: {{.Values.env.data.pdb.maxUnavailable}}
+  selector:
+    matchLabels:
+      app: logging-elastic-od-1.6.0
+      role: data
+{{ end }}

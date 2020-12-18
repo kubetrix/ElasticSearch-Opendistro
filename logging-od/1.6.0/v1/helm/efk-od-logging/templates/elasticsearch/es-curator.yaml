@@ -1,0 +1,28 @@
+{{ if eq .Values.allow.curatorEnable true }}
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{.Values.env.curator.name}}
+  namespace: {{.Values.namespace}}
+spec:
+  schedule: {{.Values.env.curator.schedule}}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: curator
+            image: {{.Values.curator.imageName}}
+            args:
+            - --config
+            - /etc/config/config.yml
+            - /etc/config/action_file.yml
+            volumeMounts:
+              - name: config-volume
+                mountPath: /etc/config
+          volumes:
+            - name: config-volume
+              configMap:
+                name: {{.Values.env.curator.config.name}}
+          restartPolicy: OnFailure
+{{ end }}

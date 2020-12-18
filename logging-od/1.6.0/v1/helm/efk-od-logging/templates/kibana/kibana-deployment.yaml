@@ -1,0 +1,50 @@
+{{ if eq .Values.allow.kibanaEnable true }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: logging-elastic-od-1.6.0
+    role: kibana
+  name: {{.Values.env.kibana.name}}
+  namespace: {{.Values.namespace}}
+spec:
+  replicas: {{.Values.env.kibana.replicas}}
+  selector:
+    matchLabels:
+      app: logging-elastic-od-1.6.0
+      role: kibana
+  template:
+    metadata:
+      labels:
+        app: logging-elastic-od-1.6.0
+        role: kibana
+    spec:      
+      containers:
+      - env:
+        - name: CLUSTER_NAME
+          value: {{.Values.clusterName}}
+        # If no custom configuration provided, default to internal DNS
+        - name: ELASTICSEARCH_HOSTS
+          value: {{.Values.env.kibana.config.elasticsearchHost}}
+        image: {{.Values.kibana.imageName}}
+        resources:
+          limits: 
+            cpu: {{.Values.env.kibana.resources.limits.cpu}}
+            memory: {{.Values.env.kibana.resources.limits.memory}}                                    
+          requests:
+            cpu: {{.Values.env.kibana.resources.requests.cpu}}
+            memory: {{.Values.env.kibana.resources.requests.memory}}                                    
+        name: logging-kibana
+        volumeMounts:
+          - mountPath: /usr/share/kibana/config/kibana.yml
+            name: config
+            subPath: kibana.yml
+        ports:
+        - containerPort: 5601
+      serviceAccountName: logging-kibana
+      volumes:
+        - name: config
+          configMap:
+            name: {{.Values.env.configFiles.kibanaYamlSecret}}
+      restartPolicy: Always
+{{ end }}

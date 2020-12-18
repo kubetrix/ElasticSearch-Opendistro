@@ -1,0 +1,10 @@
+{{ if eq .Values.allow.kibanaEnable true }}
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: {{.Values.env.oauth.nginxAuthSecretName}} 
+  namespace: {{.Values.namespace}}
+data:
+  auth: {{.Values.env.oauth.nginxAuth}}
+{{ end }}

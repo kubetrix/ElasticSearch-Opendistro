@@ -1,0 +1,124 @@
+{{ if eq .Values.allow.elasticsearchEnable true }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: logging-elastic-od-1.6.0
+    role: master
+  name: {{.Values.env.master.name}}
+  namespace: {{.Values.namespace}}
+spec:
+  replicas: {{.Values.env.master.replicas}}
+  selector:
+    matchLabels:
+      app: logging-elastic-od-1.6.0
+      role: master
+  updateStrategy:
+    type: RollingUpdate
+  serviceName: {{.Values.env.master.serviceName}}
+  template:
+    metadata:
+      labels:
+        app: logging-elastic-od-1.6.0
+        role: master
+    spec:      
+      serviceAccountName: {{.Values.env.configFiles.rbacElasticSearch.serviceAccountName}}
+      initContainers:
+      - name: init-sysctl
+        image: busybox:1.27.2
+        command:
+        - sysctl
+        - -w
+        - vm.max_map_count=262144
+        securityContext:
+          privileged: true
+      - name: fixmount
+        command: [ 'sh', '-c', 'chown -R 1000:1000 /usr/share/elasticsearch/data' ]
+        image: busybox:1.27.2
+        volumeMounts:
+          - mountPath: /usr/share/elasticsearch/data
+            name: data
+            subPath: 
+      containers:
+      - name: elasticsearch
+        env:
+        - name: cluster.name
+          value: {{.Values.clusterName}}
+        - name: cluster.initial_master_nodes
+          value: {{.Values.env.master.config.initialMasterNodes}}
+        - name: node.master
+          value: "true"
+        - name: node.ingest
+          value: "false"
+        - name: node.data
+          value: "false"
+        - name: network.host
+          value: "0.0.0.0"
+        - name: NUMBER_OF_MASTERS
+          value: {{.Values.env.master.config.noOfMasters| quote}}
+        - name: node.name
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: discovery.seed_hosts
+          value: {{.Values.env.master.serviceName}}
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: PROCESSORS
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.cpu
+        - name: ES_JAVA_OPTS
+          value: {{.Values.env.master.config.heapVal}}
+        resources:
+          limits:
+            cpu: {{.Values.env.master.config.resources.limits.cpu}}
+            memory: {{.Values.env.master.config.resources.limits.memory}}
+          requests:
+            cpu: {{.Values.env.master.config.resources.requests.cpu}}
+            memory: {{.Values.env.master.config.resources.requests.memory}}            
+            
+        livenessProbe:
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          tcpSocket:
+            port: transport
+          
+        # Official Image from Open Distro Team
+        image: {{.Values.master.imageName}}
+        imagePullPolicy: "Always"
+        ports:
+        - containerPort: 9300
+          name: transport
+        - containerPort: 9200
+          name: http
+        - containerPort: 9600
+          name: metrics
+        volumeMounts:
+        - mountPath: /usr/share/elasticsearch/data
+          name: data
+          subPath: 
+        - mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+          name: config
+          subPath: elasticsearch.yml
+        - mountPath: /usr/share/elasticsearch/config/log4j2.properties
+          name: config
+          subPath: log4j2.properties
+      volumes:
+      - name: config
+        secret:
+          secretName: {{.Values.env.configFiles.elasticsearchYamlSecret}}           
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      annotations:
+         volume.beta.kubernetes.io/storage-class: "managed-premium"
+    spec:
+      accessModes:
+        - "ReadWriteOnce"
+      resources:
+        requests:
+          storage: {{.Values.env.master.config.volumeSize}}  
+{{ end }}

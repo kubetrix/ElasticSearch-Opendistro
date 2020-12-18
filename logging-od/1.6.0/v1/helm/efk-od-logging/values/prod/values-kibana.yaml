@@ -1,0 +1,34 @@
+env:
+
+############################################################################################
+# Generic Config and RBAC
+############################################################################################
+  configFiles:
+    kibanaYamlSecret: kibana-config
+    rbacKibana:
+      serviceAccountName: logging-kibana  
+      roleName: logging-kibana
+      roleBindingName: logging-kibana
+
+
+############################################################################################
+# Kibana deployment
+############################################################################################
+    
+  kibana:
+    name: logging-kibana
+    serviceName: logging-kibana
+    replicas: 2
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2048Mi
+      requests:
+        cpu: 500m
+        memory: 1024Mi
+    config:
+      elasticsearchHost: http://elastic-client-kibana:9200 # Use correct service name as mentioned in elastic-client-kibana
+   
+    
+
+    

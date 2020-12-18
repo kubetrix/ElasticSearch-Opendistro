@@ -1,0 +1,37 @@
+env:
+
+############################################################################################
+# Generic Config and RBAC
+############################################################################################
+  configFiles:
+    fluendConf: fluentd-config
+    fluentdKubernetesConf: fluentd-kubernetes-config
+    rbacfluentd:
+      serviceAccountName: logging-fluentd  
+      clusterRoleName: logging-fluentd
+      clusterRoleBindingName: logging-fluentd
+
+
+############################################################################################
+# Fluentd deployment
+############################################################################################
+    
+  fluentd:
+    name: logging-fluentd
+    replicas: 1
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2048Mi
+      requests:
+        cpu: 500m
+        memory: 1024Mi
+    config:
+      logstashIndexPrefix: prod
+      elasticsearchClient:
+        host: elastic-client-fluentd # Use correct service name as mentioned in elastic-client-fluentd
+        port: 9200
+        scheme: http
+        sslVerify: false
+        userName: none
+        password: none       

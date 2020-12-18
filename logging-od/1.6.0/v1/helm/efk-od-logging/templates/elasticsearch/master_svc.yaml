@@ -1,0 +1,29 @@
+{{ if eq .Values.allow.elasticsearchEnable true }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: logging-elastic-od-1.6.0
+    role: master
+  name: {{.Values.env.master.name}}
+  namespace: {{.Values.namespace}}
+spec:
+  ports:
+    - port: 9300
+      protocol: TCP
+  clusterIP: None
+  selector:
+    role: master
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{.Values.env.configFiles.elasticsearchYamlSecret}}
+  namespace: {{.Values.namespace}}
+  labels:
+    app: logging-elastic-od-1.6.0
+type: Opaque
+data:
+  elasticsearch.yml: {{.Values.env.configFiles.elasticsearchYaml| quote}}
+  log4j2.properties: {{.Values.env.configFiles.log4j2Properties| quote}}
+{{ end }}

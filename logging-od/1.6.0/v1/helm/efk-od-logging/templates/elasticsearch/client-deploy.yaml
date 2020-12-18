@@ -1,0 +1,97 @@
+{{ if eq .Values.allow.elasticsearchEnable true }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: logging-elastic-od-1.6.0
+    role: client
+  name: {{.Values.env.client.fluentd.name}}
+  namespace: {{.Values.namespace}}
+spec:
+  replicas: {{.Values.env.client.fluentd.replicas}}
+  selector:
+    matchLabels:
+      app: logging-elastic-od-1.6.0
+      role: client
+  template:
+    metadata:
+      labels:
+        app: logging-elastic-od-1.6.0
+        role: client
+      annotations:
+        
+    spec:      
+      serviceAccountName: {{.Values.env.configFiles.rbacElasticSearch.serviceAccountName}}
+      initContainers:
+      - name: init-sysctl
+        image: busybox:1.27.2
+        command:
+        - sysctl
+        - -w
+        - vm.max_map_count=262144
+        securityContext:
+          privileged: true
+      containers:
+      - name: elasticsearch
+        env:
+        - name: cluster.name
+          value: {{.Values.clusterName}}
+        - name: node.master
+          value: "false"
+        - name: node.ingest
+          value: "true"
+        - name: node.data
+          value: "false"
+        - name: network.host
+          value: "0.0.0.0"
+        - name: node.name
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: discovery.seed_hosts
+          value: {{.Values.env.master.name}}
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: PROCESSORS
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.cpu
+        - name: ES_JAVA_OPTS
+          value: {{.Values.env.client.fluentd.heapVal}}
+        resources:
+          limits:
+            cpu: {{.Values.env.client.fluentd.resources.limits.cpu}}
+            memory: {{.Values.env.client.fluentd.resources.limits.memory}}
+          requests:
+            cpu: {{.Values.env.client.fluentd.resources.requests.cpu}}
+            memory: {{.Values.env.client.fluentd.resources.requests.memory}}            
+            
+        # Official Image from Open Distro Team
+        image: {{.Values.client.imageName}}
+        imagePullPolicy: "Always"
+        ports:
+        - containerPort: 9200
+          name: http
+        - containerPort: 9300
+          name: transport
+        - containerPort: 9600
+          name: metrics
+        livenessProbe:
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          tcpSocket:
+            port: transport          
+        volumeMounts:
+        - mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+          name: config
+          subPath: elasticsearch.yml
+        - mountPath: /usr/share/elasticsearch/config/log4j2.properties
+          name: config
+          subPath: log4j2.properties
+      volumes:
+      - name: config
+        secret:
+          secretName: {{.Values.env.configFiles.elasticsearchYamlSecret}}
+{{ end }}

@@ -1,0 +1,134 @@
+{{ if eq .Values.allow.elasticsearchEnable true }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: logging-elastic-od-1.6.0
+    role: data
+  name: {{.Values.env.data.name}}
+  namespace: {{.Values.namespace}}
+spec:
+  serviceName: {{.Values.env.data.serviceName}}
+  replicas: {{.Values.env.data.replicas}}
+  selector:
+    matchLabels:
+      app: logging-elastic-od-1.6.0
+      role: data
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: logging-elastic-od-1.6.0
+        role: data
+    spec:      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - logging-elastic-od-1.6.0
+                - key: role
+                  operator: In
+                  values:
+                  - data
+              topologyKey: kubernetes.io/hostname
+      initContainers:
+      - name: init-sysctl
+        image: busybox:1.27.2
+        command:
+        - sysctl
+        - -w
+        - vm.max_map_count=262144
+        securityContext:
+          privileged: true
+      - name: fixmount
+        command: [ 'sh', '-c', 'chown -R 1000:1000 /usr/share/elasticsearch/data' ]
+        image: busybox:1.27.2
+        volumeMounts:
+          - mountPath: /usr/share/elasticsearch/data
+            name: data
+            subPath: 
+      serviceAccountName: {{.Values.env.configFiles.rbacElasticSearch.serviceAccountName}}
+      containers:
+      - name: elasticsearch
+        env:
+        - name: cluster.name
+          value: {{.Values.clusterName}}
+        - name: node.master
+          value: "false"
+        - name: node.ingest
+          value: "false"
+        - name: network.host
+          value: "0.0.0.0"
+        - name: node.name
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: discovery.seed_hosts
+          value: {{.Values.env.master.serviceName}}
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: node.data
+          value: "true"
+        - name: PROCESSORS
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.cpu
+        - name: ES_JAVA_OPTS
+          value: {{.Values.env.data.config.heapVal}}
+        # Official Image from Open Distro Team
+        image: {{.Values.data.imageName}}
+        imagePullPolicy: "Always"
+        # only publish the transport port
+        ports:
+        - containerPort: 9300
+          name: transport
+        resources:
+          limits:
+            cpu: {{.Values.env.data.config.resources.limits.cpu}}
+            memory: {{.Values.env.data.config.resources.limits.memory}}
+          requests:
+            cpu: {{.Values.env.data.config.resources.requests.cpu}}
+            memory: {{.Values.env.data.config.resources.requests.memory}}            
+        livenessProbe:
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          tcpSocket:
+            port: transport
+          
+        volumeMounts:
+        - mountPath: /usr/share/elasticsearch/data
+          name: data
+          subPath: 
+        - mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+          name: config
+          subPath: elasticsearch.yml
+        - mountPath: /usr/share/elasticsearch/config/log4j2.properties
+          name: config
+          subPath: log4j2.properties
+
+      volumes:
+      - name: config
+        secret:
+          secretName: {{.Values.env.configFiles.elasticsearchYamlSecret}}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      annotations:
+         volume.beta.kubernetes.io/storage-class: "managed-premium"
+    spec:
+      accessModes:
+        - "ReadWriteOnce"
+      storageClassName: managed-premium
+      resources:
+        requests:
+          storage: {{.Values.env.data.config.volumeSize}}
+{{ end }}
