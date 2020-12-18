@@ -1,0 +1,9 @@
+apiVersion: v1
+data:
+  tls.crt: <value>
+  tls.key: <value>
+kind: Secret
+metadata:
+  name: nginx-ingress-certs
+  namespace: logging-od
+type: kubernetes.io/tls

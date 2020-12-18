@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: logging-elastic-od-1.6.0
+    role: kibana
+  name: logging-kibana
+  namespace: logging-od
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: logging-elastic-od-1.6.0
+      role: kibana
+  template:
+    metadata:
+      labels:
+        app: logging-elastic-od-1.6.0
+        role: kibana
+    spec:      
+      containers:
+      - env:
+        - name: CLUSTER_NAME
+          value: elasticsearch-od
+        # If no custom configuration provided, default to internal DNS
+        - name: ELASTICSEARCH_HOSTS
+          value: http://elastic-client-kibana:9200
+        image:  amazon/opendistro-for-elasticsearch-kibana:1.6.0
+        resources:
+          limits: 
+            cpu: 1000m
+            memory: 2048Mi                                    
+          requests:
+            cpu: 500m
+            memory: 1024Mi                                    
+        name: logging-kibana
+        volumeMounts:
+          - mountPath: /usr/share/kibana/config/kibana.yml
+            name: config
+            subPath: kibana.yml
+        ports:
+        - containerPort: 5601
+      serviceAccountName: logging-kibana
+      volumes:
+        - name: config
+          configMap:
+            name: kibana-config
+      restartPolicy: Always
+

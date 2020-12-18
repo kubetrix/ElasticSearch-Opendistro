@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: logging-elastic-od-1.6.0
+    role: master
+  name: elastic-master
+  namespace: logging-od
+spec:
+  ports:
+    - port: 9300
+      protocol: TCP
+  clusterIP: None
+  selector:
+    role: master
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: elastic-config
+  namespace: logging-od
+  labels:
+    app: logging-elastic-od-1.6.0
+type: Opaque
+data:
+  elasticsearch.yml: "Y2x1c3Rlci5uYW1lOiAiZG9ja2VyLWNsdXN0ZXIiCm5ldHdvcmsuaG9zdDogMC4wLjAuMApvcGVuZGlzdHJvX3NlY3VyaXR5LmRpc2FibGVkOiB0cnVlCmNsdXN0ZXIucm91dGluZy5hbGxvY2F0aW9uLmRpc2sudGhyZXNob2xkX2VuYWJsZWQ6IGZhbHNlCm5vZGUubWF4X2xvY2FsX3N0b3JhZ2Vfbm9kZXM6IDMKdGhyZWFkX3Bvb2wud3JpdGUucXVldWVfc2l6ZTogODAw"
+  log4j2.properties: "c3RhdHVzID0gZXJyb3IKCmFwcGVuZGVyLmNvbnNvbGUudHlwZSA9IENvbnNvbGUKYXBwZW5kZXIuY29uc29sZS5uYW1lID0gY29uc29sZQphcHBlbmRlci5jb25zb2xlLmxheW91dC50eXBlID0gUGF0dGVybkxheW91dAphcHBlbmRlci5jb25zb2xlLmxheW91dC5wYXR0ZXJuID0gWyVke0lTTzg2MDF9XVslLTVwXVslLTI1Y3sxLn1dIFslbm9kZV9uYW1lXSVtYXJrZXIgJW0lbgoKcm9vdExvZ2dlci5sZXZlbCA9IGluZm8Kcm9vdExvZ2dlci5hcHBlbmRlclJlZi5jb25zb2xlLnJlZiA9IGNvbnNvbGU="

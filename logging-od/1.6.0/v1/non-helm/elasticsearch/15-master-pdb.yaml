@@ -1,0 +1,10 @@
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: elastic-master
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: logging-elastic-od-1.6.0
+      role: master

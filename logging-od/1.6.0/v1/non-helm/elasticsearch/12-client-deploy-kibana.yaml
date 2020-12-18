@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: logging-elastic-od-1.6.0
+    role: client
+  name: elastic-client-kibana
+  namespace: logging-od
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: logging-elastic-od-1.6.0
+      role: client
+  template:
+    metadata:
+      labels:
+        app: logging-elastic-od-1.6.0
+        role: client
+      annotations:
+        
+    spec:      
+      serviceAccountName: logging-elastic
+      initContainers:
+      - name: init-sysctl
+        image: busybox:1.27.2
+        command:
+        - sysctl
+        - -w
+        - vm.max_map_count=262144
+        securityContext:
+          privileged: true
+      containers:
+      - name: elasticsearch
+        env:
+        - name: cluster.name
+          value: elasticsearch-od
+        - name: node.master
+          value: "false"
+        - name: node.ingest
+          value: "true"
+        - name: node.data
+          value: "false"
+        - name: network.host
+          value: "0.0.0.0"
+        - name: node.name
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: discovery.seed_hosts
+          value: elastic-master
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: PROCESSORS
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.cpu
+        - name: ES_JAVA_OPTS
+          value: -Xms512m -Xmx512m
+        resources:
+          limits:
+            cpu: 500m
+            memory: 2048Mi
+          requests:
+            cpu: 100m
+            memory: 1024Mi            
+            
+        # Official Image from Open Distro Team
+        image: amazon/opendistro-for-elasticsearch:1.6.0
+        imagePullPolicy: "Always"
+        ports:
+        - containerPort: 9200
+          name: http
+        - containerPort: 9300
+          name: transport
+        - containerPort: 9600
+          name: metrics
+        livenessProbe:
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          tcpSocket:
+            port: transport
+          
+        volumeMounts:
+        - mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+          name: config
+          subPath: elasticsearch.yml
+        - mountPath: /usr/share/elasticsearch/config/log4j2.properties
+          name: config
+          subPath: log4j2.properties
+      volumes:
+      - name: config
+        secret:
+          secretName: elastic-config
